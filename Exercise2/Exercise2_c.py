@@ -74,7 +74,10 @@ for j in xrange(0,7):
 
 		y_sub = np.concatenate((y[:10*(i-1)], y[10*i:]))
 
-		beta_ = mdot(inv(dot(poly_X_sub.T, poly_X_sub) + lambda_ * np.identity(poly_X_sub.shape[1])), poly_X_sub.T, y_sub)  # beta = (poly_X_sub^T*poly_X_sub)*poly_X_sub^T*y
+		identity = np.identity(poly_X_sub.shape[1])
+		identity[0] = 0
+
+		beta_ = mdot(inv(dot(poly_X_sub.T, poly_X_sub) + lambda_ * identity), poly_X_sub.T, y_sub)  # beta = (poly_X_sub^T*poly_X_sub)*poly_X_sub^T*y
 		# print "Optimal beta:", beta_
 
 		# prep for prediction
