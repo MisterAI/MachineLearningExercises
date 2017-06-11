@@ -12,6 +12,8 @@ from numpy.linalg import inv
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D  # 3D plotting
 
+from sklearn.preprocessing import PolynomialFeatures
+
 
 ###############################################################################
 # Helper functions
@@ -40,6 +42,10 @@ X, y = data[:, :2], data[:, 2]
 print "X.shape:", X.shape
 print "y.shape:", y.shape
 
+poly = PolynomialFeatures(2)
+poly_X = poly.fit_transform(X)
+print "poly_X.shape", poly_X.shape
+
 # 3D plotting
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d') # the projection arg is important!
@@ -49,26 +55,25 @@ ax.set_title("raw data")
 plt.draw()
 
 # show, use plt.show() for blocking
-
 # prep for linear reg.
 X = prepend_one(X)
 print "X.shape:", X.shape
 
 # Use lambda for regularization
-lambda_ = 1000
+lambda_ = 0
 
 ### Fit model/compute optimal parameters beta
 
-# initialize matrices and vectors
-beta_ = np.zeros((X.shape[1], 1))	# 3x1
+# Initialize matrices and vectors
+beta_ = np.zeros((poly_X.shape[1], 1))
 print "beta_.shape:", beta_.shape
-p = np.ones((X.shape[0], 1))		# 200x1
+p = np.ones((poly_X.shape[0], 1))
 print "p.shape:", p.shape
-W = np.identity(X.shape[0])			# 200x200
+W = np.identity(poly_X.shape[0])
 print "W.shape:", W.shape
-gradient = np.ones((X.shape[1], X.shape[1])) # 3x3
+gradient = np.ones((poly_X.shape[1], poly_X.shape[1]))
 print "gradient.shape:", gradient.shape
-hessian = np.ones((X.shape[0], X.shape[0]))  # 200x200
+hessian = np.ones((poly_X.shape[0], poly_X.shape[0]))
 print "hessian.shape:", hessian.shape
 # bring y into shaped form
 y_shaped = np.copy(y)
@@ -79,15 +84,15 @@ y_shaped.shape = (y_shaped.shape[0], 1)
 # iterate Newton steps
 for i in xrange(1,10):
 	# calculate the probabilites p_i
-	for j in xrange(0,X.shape[0]):
-		p[j] = 1/(1+np.exp(-1*mdot(X[j,:].T, beta_)))
+	for j in xrange(0,poly_X.shape[0]):
+		p[j] = 1/(1+np.exp(-1*mdot(poly_X[j,:].T, beta_)))
 	# calculate the gradient
-	gradient = mdot(X.T, p-y_shaped) + 2*lambda_*mdot(np.identity(X.shape[1]), beta_)
+	gradient = mdot(poly_X.T, p-y_shaped) + 2*lambda_*mdot(np.identity(poly_X.shape[1]), beta_)
 	# calculate matrix W
-	for j in xrange(0,X.shape[0]):
+	for j in xrange(0,poly_X.shape[0]):
 		W[j, j] = p[j]*(1-p[j])
 	# calculate the hessian
-	hessian = mdot(X.T, W, X) + 2*lambda_*np.identity(X.shape[1])
+	hessian = mdot(poly_X.T, W, poly_X) + 2*lambda_*np.identity(poly_X.shape[1])
 	# print "hessian.shape:", hessian.shape
 	# print "gradient.shape:", gradient.shape
 	beta_ = beta_ - mdot(inv(hessian), gradient)
@@ -95,20 +100,20 @@ for i in xrange(1,10):
 
 print "Optimal beta:", beta_
 
-
 # prep for prediction
 X_grid = prepend_one(grid2d(-3, 3, num=30))
 print "X_grid.shape:", X_grid.shape
+poly_X_grid = poly.fit_transform(X_grid[:,1:])
 
 # plot probability over 2D grid of test points
-prob = np.ones((X_grid.shape[0], 1))
-for j in xrange(0,X_grid.shape[0]):
-		prob[j] = 1/(1+np.exp(-1*mdot(X_grid[j,:].T, beta_)))
+prob = np.ones((poly_X_grid.shape[0], 1))
+for j in xrange(0,poly_X_grid.shape[0]):
+		prob[j] = 1/(1+np.exp(-1*mdot(poly_X_grid[j,:].T, beta_)))
 
 # vis the result
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d') # the projection part is important
-ax.scatter(X_grid[:, 1], X_grid[:, 2], prob, color="red") # also show the real data
+ax.scatter(poly_X_grid[:, 1], poly_X_grid[:, 2], prob, color="blue") # also show the real data
 ax.scatter(X[:, 1], X[:, 2], y, color="red") # also show the real data
 ax.set_title("Probability function")
 plt.show()
